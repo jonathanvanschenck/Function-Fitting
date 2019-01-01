@@ -4,7 +4,8 @@ Updated: 1/1/19
 This is the base class which can be adapted to generate various fitting classes.
 """
 
-from lineshape import *.
+import numpy as np
+import matplotlib.pyplot as plt
 
 class fit:
     """    
@@ -208,7 +209,7 @@ class fit:
                      was.
         """
         self.fit = least_squares(self.fitFunDifference,self.iparam[self.which],
-                                 verbose=1,bounds=self.bound,xtol=xtol,ftol=ftol)
+                                 verbose=1,bounds=self.bound[...,self.which],xtol=xtol,ftol=ftol)
         if self.fit.success:
             self.param = np.copy(self.iparam)
             self.param[self.which] = np.copy(self.fit.x)
