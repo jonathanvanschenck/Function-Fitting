@@ -10,7 +10,7 @@ from scipy.optimize import least_squares
 def vecAnd(listArrays):
     return np.all(np.array(listArrays).T,axis=1)
 
-class fit:
+class FIT:
     """    
     Inputs Required
     datax:      Some generic data to be fit (x values)
