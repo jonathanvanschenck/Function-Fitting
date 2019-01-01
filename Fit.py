@@ -7,7 +7,8 @@ This is the base class which can be adapted to generate various fitting classes.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
-
+def vecAnd(listArrays):
+    return np.all(np.array(listArrays).T,axis=1)
 
 class fit:
     """    
