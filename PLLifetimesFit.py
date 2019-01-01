@@ -1,4 +1,16 @@
-from lineshape import *
+import Fit
+
+def unitStep(t):
+    if t>=0:
+        return 1
+    else:
+        return 0
+
+def unitStepVec(t):
+    return np.vectorize(unitStep)(t)
+
+def conv(a,b):
+    return np.fft.irfft(np.fft.rfft(a)*np.fft.rfft(b))
 
 class plLifeFit:
     "Creates a PL Lifetimes Fitting object"
