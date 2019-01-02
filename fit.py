@@ -68,7 +68,7 @@ class FIT:
         self.param = np.copy(self.iparam)
         self.which = np.full(len(self.paramNames),True,dtype='bool')
         self.nf = np.sum(np.ones(len(self.paramNames))[self.which])
-        self.fitMask = np.full(len(self.aoi),True,'bool')
+        self.fitMask = np.full(len(datax),True,'bool')
         self.bound = np.array((2,len(self.paramNames)))
     
     def createFitRegion(self,mini,maxi):
