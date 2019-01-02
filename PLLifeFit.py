@@ -1,19 +1,62 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
+
 def vecAnd(listArrays):
     return np.all(np.array(listArrays).T,axis=1)
+def conv(a,b,dx=1):
+    return np.fft.irfft(np.fft.rfft(a)*np.fft.rfft(b))*dx
+def mexp(x,p):
+    res = np.zeros(len(x))
+    for i in range(len(p)//2):
+        res=res+p[i]*np.exp(-x/p[i+1])
+    return res
+def mexp2(x,p):
+    res = np.zeros(len(x))
+    for i in range(len(p)//2):
+        res=res+np.exp(p[i]-x/p[i+1])
+    return res
+def unitStep(t):
+    if t>=0:
+        return 1
+    else:
+        return 0
+def unitStepVec(t):
+    return np.vectorize(unitStep)(t)
+def rhoT(x,p,tau):
+    capR = np.zeros(len(x))
+    rho = np.zeros(len(x))
+    nrho = np.zeros(len(x))
+    for i in range(len(p)//2):
+        capR += p[i]*np.exp(-x/p[i+1])/(np.exp(tau/p[i+1])-1)
+        rho += unitStepVec(x)*p[i]*np.exp(-(x)/p[i+1])
+        nrho += unitStepVec(x-tau)*p[i]*np.exp(-(x-tau)/p[i+1])
+    return capR+rho+nrho
+def rhoT2(x,p,tau):
+    capR = np.zeros(len(x))
+    rho = np.zeros(len(x))
+    nrho = np.zeros(len(x))
+    for i in range(len(p)//2):
+        capR += np.exp(p[i]-x/p[i+1])/(np.exp(tau/p[i+1])-1)
+        rho += unitStepVec(x)*np.exp(p[i]-(x)/p[i+1])
+        nrho += unitStepVec(x-tau)*np.exp(p[i]-(x-tau)/p[i+1])
+    return capR+rho+nrho
+def rot(x,s):
+    l = len(x)
+    step = s%l
+    if step!=0:
+        return x[np.r_[step:l,0:step]]
+    return x
 
 class FIT:
     """    
     Inputs Required
-    datax:      Some generic data to be fit (x values)
+    datat:      Some generic time data to be fit (t values in ns)
     datay:      Some generic data to be fit (y values)
-    fun:        Function to be fit to. It must only take a single argument (param),
-                 and then return the y values of the fit.
-    paramNames: 1d Numpy array holding the names of each parameter
+    expCoef:    Boonlean to specify to use exponential coefficients
     
-    Attributes:     
+    Attributes: 
+    paramNames: 1d Numpy array holding the names of each parameter
     iparam:     1d numpy array holding the initial guess for paramter values
                  (must be specified using .initializeFitParams BEFORE the fit
                   can be performed). Structure: [...]
@@ -36,34 +79,49 @@ class FIT:
                  
     
     Best Practice for Use:
-          1)  Call fit class and provide data
-    opt/ 2a)  Specify fit region (.createFitRegion)
-    opt\ 2b)  Freeze parameters NOT used during fitting (.freezeFitParams)
+         1a)  Call fit class and provide data
+    opt  1b)  Provide IRF to fit with (.loadIRF)
+    opt   2)  Specify fit region (.createFitRegion)
           3)  Provide inital guess for parameter values (.initializeFitParams)
-          4)  Set bounds on free fit parameters (.createFitParamBounds)
-          5)  Perform Fit (.performFit)
-     opt/ 6)  Plot resuts (.plot)
-     opt\ 7)  Print fit results (.printParam)
+    opt   4)  Freeze parameters NOT used during fitting (.freezeFitParams)
+          5)  Set bounds on free fit parameters (.createFitParamBounds)
+          6)  Perform Fit (.performFit)
+     opt/ 7)  Plot resuts (.plot)
+     opt\ 8)  Print fit results (.printParam)
     """
-    def __init__(datax,datay,fun,paramNames):
+    def __init__(self,datat,datay,expCoef=False):
         """
-        datax:       Some generic numpy array to be fit (x values). Must match length of datay
-        datay:       Some generic numpy array to be fit (y values). Must match length of datax
+        datat:       Some generic numpy array to be fit (x values). Must match length of datay
+        datay:       Some generic numpy array to be fit (y values). Must match length of datat
         fun:         Function to be fit to. It must only take a single argument (param),
                       and then return a numpy array of y values of the fit. Must match length
                       of datay.
         paramNames:  Numpy array holding the names of each parameter used by fun to fit datay
         """
-        self.datax = datax
-        self.datay = datay   
-        self.fun = fun
-        self.paramNames = np.vectorize(str)(np.array(paramNames))
+        self.dt = np.mean(np.diff(datat))
+        self.datat = datat-np.min(datat)
+        self.tau = np.max(self.datat)
+        self.datay = datay
+        self._expCoef = expCoef
+        if self._expCoef:
+            self.fun = lambda p: rhoT2(self.datat-p[-1],p[:-1],self.tau)
+            self.paramNames = np.array(["ea1","t1","s"])#np.vectorize(str)(np.array(paramNames))
+        else:
+            self.fun = self.fun = lambda p: rhoT(self.datat-p[-1],p[:-1],self.tau)
+            self.paramNames = np.array(["a1","t1","s"])#np.vectorize(str)(np.array(paramNames))
         self.iparam = np.zeros(len(self.paramNames))
         self.param = np.copy(self.iparam)
         self.which = np.full(len(self.paramNames),True,dtype='bool')
         self.nf = np.sum(np.ones(len(self.paramNames))[self.which])
-        self.fitMask = np.full(len(self.aoi),True,'bool')
+        self.fitMask = np.full(len(self.datat),True,'bool')
         self.bound = np.array((2,len(self.paramNames)))
+        self.irf = np.array([1/self.dt]+(len(datat)-1)*[0])
+        self.irffit = np.array([1/self.dt]+(len(datat)-1)*[0])
+        
+    def loadIRF(self,irf):
+        self.irf = irf/np.sum(irf*self.dt)
+        imax = np.arange(len(irf))[irf==np.max(irf)][0]
+        self.irffit = rot(self.irf,imax)
     
     def createFitRegion(self,mini,maxi):
         """
@@ -71,10 +129,10 @@ class FIT:
         select which points to fit by.
         
         Input
-        mini:       Float: left bound on datax range
-        maxi:       Float: right bound on datax range
+        mini:       Float: left bound on datat range
+        maxi:       Float: right bound on datat range
         """
-        self.fitMask = vecAnd([self.datax<maxi,self.datax>mini])
+        self.fitMask = vecAnd([self.datat<maxi,self.datat>mini])
                     
     def freezeFitParams(self,which):
         """
@@ -102,7 +160,12 @@ class FIT:
         """
         self.iparam = np.array(iparam)
         self.param = np.copy(self.iparam)
-    
+        if self._expCoef:
+            self.paramNames = np.array([i+str(j+1) for j in range((len(iparam)-1)//2) for i in ["ea","t"]]+["s"])
+        else:
+            self.paramNames = np.array([i+str(j+1) for j in range((len(iparam)-1)//2) for i in ["a","t"]]+["s"])
+        self.which = np.full(len(self.paramNames),True,dtype='bool')
+        
     def createFitParamBounds(self,bound):
         """
         Function sets the bounds for parameter values during fitting
@@ -133,7 +196,9 @@ class FIT:
         """
         p = np.copy(self.param)
         p[self.which] = np.array(par)
-        res = np.array(self.fun(p))
+        res = conv(self.fun(p),self.irffit,self.dt)
+        while res.shape[0]<self.datat.shape[0]:
+            res = np.hstack([res,[0]])
         return res
         
     def fitFunDifference(self,par):
@@ -148,9 +213,14 @@ class FIT:
         Output
         res:        1d numpy array holding the error between fit and datay.
         """
-        return self.fitFun(par)-self.datay
+        d = self.fitFun(par)[self.fitMask]
+        y = self.datay[self.fitMask]
+        mask = vecAnd([d>0.0,y>0.0])
+        res = np.zeros(len(y))
+        res[mask] = np.log10(d[mask])-np.log10(y[mask])
+        return res
     
-    def plot(self,plotName='',xlab='',ylab=''):
+    def plot(self,plotName='',xlab='',ylab='',log=True):
         """
         Function gives a plot of the data and fit. Must be called AFTER 
         .initializeFitParams, but can be called before .performFit.
@@ -159,12 +229,17 @@ class FIT:
         plotName:   String which titles the plot.
         """
         plt.figure()
-        data, = plt.plot(self.datax,self.datay,'o',label='Data')
-        fit, = plt.plot(self.datax,self.fun(self.param),label='fit ex',color='cyan')
-        fit2, = plt.plot(self.datax[self.fitMask],self.fun(self.param)[self.fitMask],label='fit2',color='red')
+        if log:
+            plt.yscale('log')
+        else:
+            plt.yscale('linear')
+        data, = plt.plot(self.datat,self.datay,'o',label='Data')
+        fit, = plt.plot(self.datat,self.fitFun(self.param[self.which]),label='fit ex',color='cyan')
+        fit2, = plt.plot(self.datat[self.fitMask],self.fitFun(self.param[self.which])[self.fitMask],label='fit2',color='red')
         plt.title(plotName)
         plt.xlabel(xlab)
         plt.ylabel(ylab)
+        plt.ylim(ymin=np.min(self.datay[self.datay>0]))
         plt.legend()#(loc='lower right')
         #plt.show()
     
