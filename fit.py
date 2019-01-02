@@ -51,7 +51,7 @@ class FIT:
      opt/ 6)  Plot resuts (.plot)
      opt\ 7)  Print fit results (.printParam)
     """
-    def __init__(datax,datay,fun,paramNames):
+    def __init__(self,datax,datay,fun,paramNames):
         """
         datax:       Some generic numpy array to be fit (x values). Must match length of datay
         datay:       Some generic numpy array to be fit (y values). Must match length of datax
