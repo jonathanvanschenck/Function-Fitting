@@ -1,4 +1,4 @@
-import Fit
+import fit
 
 def unitStep(t):
     if t>=0:
@@ -11,6 +11,7 @@ def unitStepVec(t):
 
 def conv(a,b):
     return np.fft.irfft(np.fft.rfft(a)*np.fft.rfft(b))
+
 
 class plLifeFit:
     "Creates a PL Lifetimes Fitting object"
