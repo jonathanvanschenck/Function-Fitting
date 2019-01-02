@@ -40,8 +40,8 @@ def unitStep(t):
 def unitStepVec(t):
     return np.vectorize(unitStep)(t)
 
-def conv(a,b):
-    return np.fft.irfft(np.fft.rfft(a)*np.fft.rfft(b))
+def conv(a,b,dx=1):
+    return np.fft.irfft(np.fft.rfft(a)*np.fft.rfft(b)*dx)
     
 def rjust(string,wid,fill=' '):
     return string.rjust(wid,fill)
