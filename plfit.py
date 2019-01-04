@@ -117,6 +117,7 @@ class FIT:
         self.bound = np.array((2,len(self.paramNames)))
         self.irf = np.array([1/self.dt]+(len(datat)-1)*[0])
         self.irffit = np.array([1/self.dt]+(len(datat)-1)*[0])
+        self.edgewarning = np.array([])
         
     def loadIRF(self,irf):
         self.irf = irf/np.sum(irf*self.dt)
@@ -304,7 +305,10 @@ class FIT:
                                        np.vectorize(st)(end[(num*i):(num*(i+1))]),
                                        np.vectorize(st)(difference[(num*i):(num*(i+1))])])
                             ]))     
-                                
+        if np.any(end<0.01) or np.any(end>.99):
+            self.edgewarning = self.paramNames[self.which][[i<0.01 or i>.99 for i in end]]
+            print("Edge Warning: "+str(self.edgewarning))               
+            
     def printParam(self,num=6):
         """
         Function prints out the parameter values and names.
