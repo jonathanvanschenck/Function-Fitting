@@ -70,6 +70,7 @@ class FIT:
         self.nf = np.sum(np.ones(len(self.paramNames))[self.which])
         self.fitMask = np.full(len(datax),True,'bool')
         self.bound = np.array((2,len(self.paramNames)))
+        self.edgewarning = np.array([])
     
     def createFitRegion(self,mini,maxi):
         """
@@ -234,7 +235,10 @@ class FIT:
                                        np.vectorize(st)(start[(num*i):(num*(i+1))]),
                                        np.vectorize(st)(end[(num*i):(num*(i+1))]),
                                        np.vectorize(st)(difference[(num*i):(num*(i+1))])])
-                            ]))     
+                            ]))  
+        if np.any(end<0.01) or np.any(end>.99):
+            self.edgewarning = self.paramNames[self.which][[i<0.01 or i>.99 for i in end]]
+            print("Edge Warning: "+str(self.edgewarning))
                                 
     def printParam(self,num=6):
         """
