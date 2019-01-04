@@ -9,12 +9,12 @@ def conv(a,b,dx=1):
 def mexp(x,p):
     res = np.zeros(len(x))
     for i in range(len(p)//2):
-        res=res+p[i]*np.exp(-x/p[i+1])
+        res=res+p[2*i]*np.exp(-x/p[2*i+1])
     return res
 def mexp2(x,p):
     res = np.zeros(len(x))
     for i in range(len(p)//2):
-        res=res+np.exp(p[i]-x/p[i+1])
+        res=res+np.exp(p[2*i]-x/p[2*i+1])
     return res
 def unitStep(t):
     if t>=0:
@@ -28,18 +28,18 @@ def rhoT(x,p,tau):
     rho = np.zeros(len(x))
     nrho = np.zeros(len(x))
     for i in range(len(p)//2):
-        capR += p[i]*np.exp(-x/p[i+1])/(np.exp(tau/p[i+1])-1)
-        rho += unitStepVec(x)*p[i]*np.exp(-(x)/p[i+1])
-        nrho += unitStepVec(x-tau)*p[i]*np.exp(-(x-tau)/p[i+1])
+        capR += p[2*i]*np.exp(-x/p[2*i+1])/(np.exp(tau/p[2*i+1])-1)
+        rho += unitStepVec(x)*p[2*i]*np.exp(-(x)/p[2*i+1])
+        nrho += unitStepVec(x-tau)*p[2*i]*np.exp(-(x-tau)/p[2*i+1])
     return capR+rho+nrho
 def rhoT2(x,p,tau):
     capR = np.zeros(len(x))
     rho = np.zeros(len(x))
     nrho = np.zeros(len(x))
     for i in range(len(p)//2):
-        capR += np.exp(p[i]-x/p[i+1])/(np.exp(tau/p[i+1])-1)
-        rho += unitStepVec(x)*np.exp(p[i]-(x)/p[i+1])
-        nrho += unitStepVec(x-tau)*np.exp(p[i]-(x-tau)/p[i+1])
+        capR += np.exp(p[2*i]-x/p[2*i+1])/(np.exp(tau/p[2*i+1])-1)
+        rho += unitStepVec(x)*np.exp(p[2*i]-(x)/p[2*i+1])
+        nrho += unitStepVec(x-tau)*np.exp(p[2*i]-(x-tau)/p[2*i+1])
     return capR+rho+nrho
 def rot(x,s):
     l = len(x)
