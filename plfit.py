@@ -107,7 +107,7 @@ class FIT:
             self.fun = lambda p: rhoT2(self.datat-p[-1],p[:-1],self.tau)
             self.paramNames = np.array(["ea1","t1","s"])#np.vectorize(str)(np.array(paramNames))
         else:
-            self.fun = self.fun = lambda p: rhoT(self.datat-p[-1],p[:-1],self.tau)
+            self.fun = lambda p: rhoT(self.datat-p[-1],p[:-1],self.tau)
             self.paramNames = np.array(["a1","t1","s"])#np.vectorize(str)(np.array(paramNames))
         self.iparam = np.zeros(len(self.paramNames))
         self.param = np.copy(self.iparam)
